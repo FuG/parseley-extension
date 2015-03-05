@@ -7,7 +7,10 @@ function processDOM(domContent) {
     /* Get the url that links to the products main review page */
     var allReviewsPageUrl = getAllReviewsPageUrl();
 
-    var totalReviewPages = getLastReviewPageNumber(allReviewsPageUrl);
+    var x;
+    xhrGetPage(allReviewsPageUrl, getLastReviewPageNumber);
+
+    console.log("x=" + x);
 }
 
 function getAllReviewsPageUrl() {
@@ -39,22 +42,29 @@ function formUrl(components) {
     return url;
 }
 
-function getLastReviewPageNumber(allReviewsPageUrl) {
-    var text = xhrGetPage(allReviewsPageUrl);
+function getLastReviewPageNumber(domContent) {
+    //console.log(domContent);
 
-    console.log(text);
+    //var pagingSpan = domContent.getElementsByClassName("paging").item(0);
+    //
+    //if (pagingSpan == null) {
+    //    /* TODO: figure out what to do here, should be return 1 */
+    //}
+    //
+    //var largestPageNumber = 1;
+
+    return 50;
 }
-
-function xhrSuccess() { this.callback.apply(this, this.arguments); }
 
 function xhrError () { console.error(this.statusText); }
 
-function xhrGetPage(url, fCallback) {
-    //var oReq = new XMLHttpRequest();
-    //oReq.callback = fCallback;
-    //oReq.
-    //oReq.open("GET", url, true);
-    //oReq.onload = xhrSuccess();
+function xhrGetPage(url, callback) {
+    /* TODO: MAY NEED RETRY LOGIC */
+    var oReq = new XMLHttpRequest();
+    oReq.open("GET", url, true);
+    oReq.onload = function() { callback(oReq.responseText); };
+    oReq.onerror = xhrError;
+    oReq.send(null);
 }
 
 
@@ -77,6 +87,7 @@ function getCurrentTab(callback) {
 }
 
 function sendMessage(tab) {
+    /* TODO: MAY NOT NEED THIS, SINCE WE ONLY USE URL TO BEGIN */
     chrome.tabs.sendMessage(tab.id, { text: "report_back" }, processDOM);
 }
 
