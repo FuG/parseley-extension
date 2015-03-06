@@ -8,7 +8,9 @@ function processDOM(domContent) {
     /* Get the url that links to the products main review page */
     var allReviewsPageUrl = getAllReviewsPageUrl(productMainUrl);
 
-    xhrGetPage(allReviewsPageUrl, getLastReviewPageNumber);
+    console.log(allReviewsPageUrl);
+    var allReviewsPagePromise = xhrGetPage(allReviewsPageUrl);
+    allReviewsPagePromise.then(getLastReviewPageNumber, xhrError);
 }
 
 function getAllReviewsPageUrl(mainPageUrl) {
@@ -22,7 +24,6 @@ function getAllReviewsPageUrl(mainPageUrl) {
     /* Get url path after domain */
     var splits = mainPageUrl.split(DOMAIN);
     var afterDomain = splits[1];
-    console.log(afterDomain);
 
     var asin;
     if (afterDomain.indexOf("/dp/") > -1) { /* afterDomain.contains("/dp/") */
@@ -47,6 +48,7 @@ function getAllReviewsPageUrl(mainPageUrl) {
     } else {
         /* ERROR */
         console.error("IllegalArgument: URL does not belong to an Amazon Item's main page");
+        /* TODO: stop script somehow */
     }
 
     /* Concatenate url components and return result */
@@ -66,7 +68,7 @@ function formUrl(components) {
 }
 
 function getLastReviewPageNumber(domContent) {
-    //console.log(domContent);
+    console.log(domContent);
 
     //var pagingSpan = domContent.getElementsByClassName("paging").item(0);
     //
@@ -79,15 +81,25 @@ function getLastReviewPageNumber(domContent) {
     return 50;
 }
 
-function xhrError () { console.error(this.statusText); }
+function xhrError (errorMsg) { console.error(errorMsg); }
 
-function xhrGetPage(url, callback) {
+function xhrGetPage(url) {
     /* TODO: MAY NEED RETRY LOGIC */
-    var oReq = new XMLHttpRequest();
-    oReq.open("GET", url, true);
-    oReq.onload = function() { callback(oReq.responseText); };
-    oReq.onerror = xhrError;
-    oReq.send(null);
+    return new Promise(function(resolve, reject) {
+        var oReq = new XMLHttpRequest();
+        oReq.open("GET", url, true);
+        oReq.onload = function() {
+            if (oReq.status == 200) {
+                resolve(oReq.responseText);
+            } else {
+                reject(Error(oReq.statusText));
+            }
+        };
+        oReq.onerror = function() {
+            reject(Error("Network Error: failed to load page"));
+        };
+        oReq.send(null);
+    });
 }
 
 
