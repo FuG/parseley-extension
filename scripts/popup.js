@@ -1,33 +1,56 @@
+var TESTMODE = 1;
 var DOMAIN = "http://www.amazon.com";
-var primaryUrl;
+var productMainUrl;
 
 function processDOM(domContent) {
     //console.log("I received the following DOM content:\n" + domContent);
 
     /* Get the url that links to the products main review page */
-    var allReviewsPageUrl = getAllReviewsPageUrl();
+    var allReviewsPageUrl = getAllReviewsPageUrl(productMainUrl);
 
-    var x;
     xhrGetPage(allReviewsPageUrl, getLastReviewPageNumber);
-
-    console.log("x=" + x);
 }
 
-function getAllReviewsPageUrl() {
+function getAllReviewsPageUrl(mainPageUrl) {
+    /*
+        Amazon Product URL structures
+
+        http://www.amazon.com/<SEO STRING>/dp/<VIEW>/ASIN
+        http://www.amazon.com/gp/product/<VIEW>/ASIN
+     */
+
     /* Get url path after domain */
-    var splits = primaryUrl.split(DOMAIN + "/");
+    var splits = mainPageUrl.split(DOMAIN);
     var afterDomain = splits[1];
+    console.log(afterDomain);
 
-    /* Remove "dp/" from fron of url path */
-    splits = afterDomain.split("dp/");
-    var afterDp = splits[1];
+    var asin;
+    if (afterDomain.indexOf("/dp/") > -1) { /* afterDomain.contains("/dp/") */
+        /* Remove "/dp/" from front of url path */
+        splits = afterDomain.split("/dp/");
+        var afterDp = splits[1];
 
-    /* Get product ID */
-    splits = afterDp.split("/");
-    var productId = splits[0];
+        /* Get product's ASIN */
+        splits = afterDp.split("/");
+        asin = splits[0];
+    } else if (afterDomain.indexOf("/gp/") > -1) { /* afterDomain.contains("/gp/") */
+        /* Get url path after "/gp/product/" */
+        splits = afterDomain.split("/gp/product/");
+        var afterGp = splits[1];
+
+        splits = afterGp.split("/");
+        asin = splits[0];
+        /* Skip <VIEW> if applicable */
+        if (asin.indexOf("glance") > -1) {
+            asin = splits[1];
+        }
+    } else {
+        /* ERROR */
+        console.error("IllegalArgument: URL does not belong to an Amazon Item's main page");
+    }
 
     /* Concatenate url components and return result */
-    return formUrl([DOMAIN, "product-reviews", productId]);
+    return formUrl([DOMAIN, "product-reviews", asin]);
 }
 
 function formUrl(components) {
@@ -80,7 +103,7 @@ function getCurrentTab(callback) {
         /* Get the active tab */
         var tab = tabs[0];
         /* Get its url */
-        primaryUrl = tab.url;
+        productMainUrl = tab.url;
         /* Callback to sendMessage with the active tab */
         callback(tab);
     });
@@ -92,5 +115,7 @@ function sendMessage(tab) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    getCurrentTab(sendMessage);
+    if (!TESTMODE) {
+        getCurrentTab(sendMessage);
+    }
 });
