@@ -1,11 +1,12 @@
 function runTests() {
-    test_getAllReviewsPageUrl();
-    test_xhrGetPage();
-    test_getLastReviewPageNumber();
+    //test_getAllReviewsPageUrl();
+    //test_xhrGetPage();
+    //test_getLastReviewPageNumber();
+    test_getAllReviewProfiles();
 }
 
 function test_getAllReviewsPageUrl() {
-    QUnit.test("getAllReviewsPageUrl success", function(assert) {
+    QUnit.test("getAllReviewsPageUrl :: valid Amazon product urls :: returned formed allReviewsPageUrl", function(assert) {
         //http://www.amazon.com/<SEO STRING>/dp/<VIEW>/ASIN
         //http://www.amazon.com/gp/product/<VIEW>/ASIN
 
@@ -25,7 +26,7 @@ function test_getAllReviewsPageUrl() {
 }
 
 function test_xhrGetPage() {
-    QUnit.test("xhrGetPage success", function(assert) {
+    QUnit.test("xhrGetPage :: successful GET :: resolve", function(assert) {
         var testFileUrl = "https://raw.githubusercontent.com/FuG/TestResource/master/xhrTestFile.html";
         var expectedOutput = "<!DOCTYPE html><html><head lang=\"en\">    <meta charset=\"UTF-8\">    <title></title></head><body></body></html>";
         var done = assert.async();
@@ -40,7 +41,7 @@ function test_xhrGetPage() {
         });
     });
 
-    QUnit.test("xhrGetPage failure", function(assert) {
+    QUnit.test("xhrGetPage :: failed GET :: reject", function(assert) {
         var testFileUrl = "some bad url";
         var done = assert.async();
         setTimeout(function() {
@@ -66,7 +67,7 @@ function test_getLastReviewPageNumber() {
     var spanStop = "</span>";
     var htmlFooter = "</td></tr></table></body></head></html>";
 
-    QUnit.test("getLastReviewPageNumber w/ no paging span (reviews <= 10)", function(assert) {
+    QUnit.test("getLastReviewPageNumber :: no paging span (reviews <= 10) :: resolve(1)", function(assert) {
         var done = assert.async();
         setTimeout(function() {
             getLastReviewPageNumber(htmlHeader + spanStart + spanStop + htmlFooter).then(function(pageNumber) {
@@ -79,7 +80,7 @@ function test_getLastReviewPageNumber() {
         });
     });
 
-    QUnit.test("getLastReviewPageNumber w/ one href (10 < reviews <= 20)", function(assert) {
+    QUnit.test("getLastReviewPageNumber :: one href (10 < reviews <= 20) :: resolve(2)", function(assert) {
         var done = assert.async();
         setTimeout(function() {
             getLastReviewPageNumber(htmlHeader + spanStart + hrefPage2 + hrefNextText + spanStop + htmlFooter).then(function(pageNumber) {
@@ -92,7 +93,7 @@ function test_getLastReviewPageNumber() {
         });
     });
 
-    QUnit.test("getLastReviewPageNumber w/ multiple href (reviews > 20)", function(assert) {
+    QUnit.test("getLastReviewPageNumber :: multiple href (reviews > 20) :: resolve(4)", function(assert) {
         var done = assert.async();
         setTimeout(function() {
             getLastReviewPageNumber(htmlHeader + spanStart + hrefPage2 + hrefPage3 + hrefPage4 + hrefNextText + spanStop + htmlFooter).then(function(pageNumber) {
@@ -102,6 +103,22 @@ function test_getLastReviewPageNumber() {
                 assert.ok(false, msg);
                 done();
             });
+        });
+    });
+}
+
+function test_getAllReviewProfileLinks() {
+    QUnit.test("getAllReviewProfileLinks :: non-integer argument :: rejects", function(assert) {
+        var expectedErrorMsg = "IllegalArgument: argument is not an integer";
+        var done = assert.async();
+        setTimeout(function() {
+            getAllReviewProfileLinks("not an int").then(function() {
+                assert.ok(false);
+                done();
+            }, function(errorMsg) {
+                assert.equal(errorMsg, expectedErrorMsg);
+                done();
+            })
         });
     });
 }

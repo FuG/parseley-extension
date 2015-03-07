@@ -1,16 +1,22 @@
-var TEST_MODE = 1;
+var TEST_MODE = 0;
 var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
+var reviewPageUrlBase;
 
 function processDOM(domContent) {
     /* Get the url that links to the products main review page */
-    var allReviewsPageUrl = getAllReviewsPageUrl(productMainUrl);
+    reviewPageUrlBase = getAllReviewsPageUrl(productMainUrl);
 
-    var allReviewsPagePromise = xhrGetPage(allReviewsPageUrl);
+    var allReviewsPagePromise = xhrGetPage(reviewPageUrlBase);
 
     var lastReviewPageNumberPromise = allReviewsPagePromise.then(getLastReviewPageNumber, xhrError);
-    lastReviewPageNumberPromise.then(function(number) {
-       console.log(number);
+
+    var allReviewProfileLinksPromise = lastReviewPageNumberPromise.then(getAllReviewProfileLinks);
+
+    allReviewProfileLinksPromise.then(function(profileLinks) {
+        console.log("Profile Links: ", profileLinks);
+    }, function(errorMsg) {
+       console.error(errorMsg);
     });
 }
 
@@ -68,6 +74,27 @@ function formUrl(components) {
     return url;
 }
 
+function xhrError (errorMsg) { console.error(errorMsg); }
+
+function xhrGetPage(url) {
+    /* TODO: MAY NEED RETRY LOGIC */
+    return new Promise(function(resolve, reject) {
+        var oReq = new XMLHttpRequest();
+        oReq.open("GET", url, true);
+        oReq.onload = function() {
+            if (oReq.status == 200) {
+                resolve(oReq.responseText);
+            } else {
+                reject(Error(oReq.statusText));
+            }
+        };
+        oReq.onerror = function() {
+            reject(Error("Network Error: failed to load page"));
+        };
+        oReq.send(null);
+    });
+}
+
 function getLastReviewPageNumber(domContent) {
     return new Promise(function(resolve, reject) {
         /* TODO: is reject case required here? */
@@ -92,27 +119,41 @@ function isNumeric(str) {
     return !isNaN(str);
 }
 
-function xhrError (errorMsg) { console.error(errorMsg); }
-
-function xhrGetPage(url) {
-    /* TODO: MAY NEED RETRY LOGIC */
+function getAllReviewProfileLinks(lastPageNumber) {
+    /* TODO: write tests*/
     return new Promise(function(resolve, reject) {
-        var oReq = new XMLHttpRequest();
-        oReq.open("GET", url, true);
-        oReq.onload = function() {
-            if (oReq.status == 200) {
-                resolve(oReq.responseText);
-            } else {
-                reject(Error(oReq.statusText));
-            }
-        };
-        oReq.onerror = function() {
-            reject(Error("Network Error: failed to load page"));
-        };
-        oReq.send(null);
+        if (lastPageNumber !== parseInt(lastPageNumber, 10)) {
+            reject("IllegalArgument: argument is not an integer");
+        }
+
+        var profileLinks = [0];
+        var resolveCount = 0;
+        for (i = 1; i <= lastPageNumber; i++) {
+            getAllProfileLinksForPage(i).then(function(profileLinksForPage) {
+                profileLinks = profileLinks.concat(profileLinksForPage);
+                if (++resolveCount == lastPageNumber) {
+                    resolve(profileLinks);
+                }
+            }, function(errorMsg) {
+                reject(errorMsg);
+            });
+        }
     });
 }
 
+function getAllProfileLinksForPage(pageNumber) {
+    /* TODO: write tests*/
+    return new Promise(function(resolve, reject) {
+        var reviewPageUrl = reviewPageUrlBase + "?pageNumber=" + pageNumber;
+        xhrGetPage(reviewPageUrl).then(function(pageContent) {
+            var reviewsDiv = $("#productReviews", pageContent);
+            var profileLinks = $("[href*='member-reviews']", reviewsDiv);
+            resolve(profileLinks);
+        }, function(errorMsg) {
+            reject(errorMsg);
+        });
+    });
+}
 
 /* START UP METHODS */
 
