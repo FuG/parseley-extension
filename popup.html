@@ -19,8 +19,8 @@
             white-space: pre;
             text-overflow: ellipsis;
             overflow: hidden;
-            min-width: 400px;
-            max-width: 600px;
+            min-width: 100px;
+            max-width: 300px;
         }
     </style>
     <link rel="stylesheet" href="styles/progress.css">
@@ -30,14 +30,16 @@
     <script src="scripts/progress.js"></script>
 </head>
 <body>
-<!--<div id="status"></div>-->
-<img id="image-result" hidden>
-<div class="demo-wrapper html5-progress-bar">
+
+<div id="status">Starting up...</div>
+
+<div class="html5-progress-bar-wrapper html5-progress-bar">
     <div class="progress-bar-wrapper">
         <progress id="progressbar" value="0" max="100"></progress>
         <span class="progress-value">0%</span>
     </div>
 </div>
+
 </body>
 </html>
 

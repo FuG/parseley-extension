@@ -3,21 +3,22 @@ var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
 var reviewPageUrlBase;
 
+function logError (errorMsg) { console.error(errorMsg); }
+
+function setStatus(status) {
+    $("#status").text(status);
+}
+
 function processDOM(domContent) {
-    /* Get the url that links to the products main review page */
     reviewPageUrlBase = getAllReviewsPageUrl(productMainUrl);
 
     var allReviewsPagePromise = xhrGetPage(reviewPageUrlBase);
 
-    var lastReviewPageNumberPromise = allReviewsPagePromise.then(getLastReviewPageNumber, xhrError);
+    var lastReviewPageNumberPromise = allReviewsPagePromise.then(getLastReviewPageNumber, logError);
 
     var allReviewProfileLinksPromise = lastReviewPageNumberPromise.then(getAllReviewProfileLinks);
 
-    allReviewProfileLinksPromise.then(function(profileLinks) {
-        console.log("Profile Links: ", profileLinks);
-    }, function(errorMsg) {
-       console.error(errorMsg);
-    });
+    allReviewProfileLinksPromise.then(getAllProfilePages, logError);
 }
 
 function getAllReviewsPageUrl(mainPageUrl) {
@@ -74,8 +75,6 @@ function formUrl(components) {
     return url;
 }
 
-function xhrError (errorMsg) { console.error(errorMsg); }
-
 function xhrGetPage(url) {
     /* TODO: MAY NEED RETRY LOGIC */
     return new Promise(function(resolve, reject) {
@@ -99,9 +98,10 @@ function getLastReviewPageNumber(domContent) {
     return new Promise(function(resolve, reject) {
         /* TODO: is reject case required here? */
         var pagingSpan = $(".paging", domContent);
-        if (!pagingSpan) { resolve(1) };
+        if (!pagingSpan) { resolve(1) }
         var hrefs = $("[href]", pagingSpan);
         var largestNumber = 1;
+        var i;
         for (i = 0; i < hrefs.length; i++) {
             var hrefText = hrefs[i].innerText;
             if (isNumeric(hrefText)) {
@@ -125,14 +125,20 @@ function getAllReviewProfileLinks(lastPageNumber) {
         if (lastPageNumber !== parseInt(lastPageNumber, 10)) {
             reject("IllegalArgument: argument is not an integer");
         }
+        setStatus("Gather profiles...");
+
+        interval = 100 / lastPageNumber;
 
         var profileLinks = [0];
         var resolveCount = 0;
+        var i;
         for (i = 1; i <= lastPageNumber; i++) {
             getAllProfileLinksForPage(i).then(function(profileLinksForPage) {
                 profileLinks = profileLinks.concat(profileLinksForPage);
+                value += interval;
                 if (++resolveCount == lastPageNumber) {
                     resolve(profileLinks);
+                    value = 100;
                 }
             }, function(errorMsg) {
                 reject(errorMsg);
@@ -152,6 +158,13 @@ function getAllProfileLinksForPage(pageNumber) {
         }, function(errorMsg) {
             reject(errorMsg);
         });
+    });
+}
+
+function getAllProfilePages(profileLinks) {
+    return new Promise(function(resolve, reject) {
+        console.log(profileLinks.length);
+        resolve();
     });
 }
 
