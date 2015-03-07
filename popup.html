@@ -5,36 +5,39 @@
  value "popup.html".
  -->
 <html>
-  <head lang="en">
+<head lang="en">
     <meta charset="UTF-8">
     <title>Parseley Extension</title>
     <style>
-      body {
-        font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
-        font-size: 100%;
-      }
-      #status {
-        /* avoid an excessively wide status text */
-        white-space: pre;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        min-width: 400px;
-        max-width: 600px;
-      }
-    </style>
+        body {
+            font-family: "Segoe UI", 'Open Sans', "Lucida Grande", Tahoma, sans-serif;
+            font-size: 100%;
+        }
 
-    <!--
-      - JavaScript and HTML must be in separate files: see our Content Security
-      - Policy documentation[1] for details and explanation.
-      -
-      - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
-     -->
+        #status {
+            /* avoid an excessively wide status text */
+            white-space: pre;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            min-width: 400px;
+            max-width: 600px;
+        }
+    </style>
+    <link rel="stylesheet" href="styles/progress.css">
+
     <script src="scripts/jquery-2.1.3.js"></script>
     <script src="scripts/popup.js"></script>
-  </head>
-  <body>
-    <div id="status"></div>
-    <img id="image-result" hidden>
-  </body>
+    <script src="scripts/progress.js"></script>
+</head>
+<body>
+<!--<div id="status"></div>-->
+<img id="image-result" hidden>
+<div class="demo-wrapper html5-progress-bar">
+    <div class="progress-bar-wrapper">
+        <progress id="progressbar" value="0" max="100"></progress>
+        <span class="progress-value">0%</span>
+    </div>
+</div>
+</body>
 </html>
 
