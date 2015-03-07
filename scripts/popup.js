@@ -1,4 +1,4 @@
-var TESTMODE = 1;
+var TEST_MODE = 1;
 var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
 
@@ -71,14 +71,9 @@ function formUrl(components) {
 function getLastReviewPageNumber(domContent) {
     return new Promise(function(resolve, reject) {
         /* TODO: is reject case required here? */
-        var parsedDOM = $.parseHTML(domContent);
-        console.log(domContent);
-        var pagingSpan = $(".paging", parsedDOM).first();
-        console.log(pagingSpan);
+        var pagingSpan = $(".paging", domContent);
+        if (!pagingSpan) { resolve(1) };
         var hrefs = $("[href]", pagingSpan);
-        if (hrefs == null) reject(msg);
-        console.log(hrefs.length);
-
         var largestNumber = 1;
         for (i = 0; i < hrefs.length; i++) {
             var hrefText = hrefs[i].innerText;
@@ -89,7 +84,6 @@ function getLastReviewPageNumber(domContent) {
                 }
             }
         }
-
         resolve(largestNumber);
     });
 }
@@ -143,8 +137,8 @@ function sendMessage(tab) {
     chrome.tabs.sendMessage(tab.id, { text: "report_back" }, processDOM);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    if (!TESTMODE) {
+if (!TEST_MODE) {
+    document.addEventListener('DOMContentLoaded', function () {
         getCurrentTab(sendMessage);
-    }
-});
+    });
+}

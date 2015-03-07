@@ -29,7 +29,6 @@ function test_xhrGetPage() {
         var testFileUrl = "https://raw.githubusercontent.com/FuG/TestResource/master/xhrTestFile.html";
         var expectedOutput = "<!DOCTYPE html><html><head lang=\"en\">    <meta charset=\"UTF-8\">    <title></title></head><body></body></html>";
         var done = assert.async();
-
         setTimeout(function() {
             xhrGetPage(testFileUrl).then(function(domContent) {
                 assert.equal(domContent.replace(/(\r\n|\n|\r)/gm,""), expectedOutput);
@@ -44,7 +43,6 @@ function test_xhrGetPage() {
     QUnit.test("xhrGetPage failure", function(assert) {
         var testFileUrl = "some bad url";
         var done = assert.async();
-
         setTimeout(function() {
             xhrGetPage(testFileUrl).then(function(domContent) {
                 assert.ok(false, "Unexpected success");
@@ -58,22 +56,47 @@ function test_xhrGetPage() {
 }
 
 function test_getLastReviewPageNumber() {
-    QUnit.test("getLastReviewPageNumber success", function(assert) {
-        var htmlHeader = "<!DOCTYPE html><html><head><body>";
-        var spanStart = "<span class=\"paging\">";
-        var hrefWith2 = "<a href=\"some url\">2</a>";
-        var hrefWith65 = "<a href=\"some url\">65</a>";
-        var hrefWithText = "<a href=\"some url\">3rads</a>";
-        var spanStop = "</span>";
-        var htmlFooter = "</body></head></html>";
-        var tester = '<span class="paging">&lsaquo; Previous | <span class="on">1</span> <a href="http://www.amazon.com/Natures-Bounty-Natural-L-5-Hydroxytryptophan-Capsules…r_top_link_2?ie=UTF8&pageNumber=2&showViewpoints=0&sortBy=byRankDescending">2</a> &hellip; <a href="http://www.amazon.com/Natures-Bounty-Natural-L-5-Hydroxytryptophan-Capsules…r_top_link_5?ie=UTF8&pageNumber=5&showViewpoints=0&sortBy=byRankDescending">5</a> | <a href="http://www.amazon.com/Natures-Bounty-Natural-L-5-Hydroxytryptophan-Capsules…_link_next_2?ie=UTF8&pageNumber=2&showViewpoints=0&sortBy=byRankDescending">Next &rsaquo;</a></span>';
+    /* Not sure why, but you need <table><tr><td> for jquery to find inner span class... */
+    var htmlHeader = "<html><head><body><table><tr><td>";
+    var spanStart = '<span class="paging">';
+    var hrefPage2 = '<a href="http://www.someurl.com">2</a>';
+    var hrefPage3 = '<a href="http://www.someurl.com">3</a>';
+    var hrefPage4 = '<a href="http://www.someurl.com">4</a>';
+    var hrefNextText = '<a href="http://www.someurl.com">Next</a>';
+    var spanStop = "</span>";
+    var htmlFooter = "</td></tr></table></body></head></html>";
 
+    QUnit.test("getLastReviewPageNumber w/ no paging span (reviews <= 10)", function(assert) {
         var done = assert.async();
-
         setTimeout(function() {
-            //getLastReviewPageNumber(htmlHeader + spanStart + hrefWith2 + spanStop + htmlFooter).then(function(pageNumber) {
-            getLastReviewPageNumber(tester).then(function(pageNumber) {
+            getLastReviewPageNumber(htmlHeader + spanStart + spanStop + htmlFooter).then(function(pageNumber) {
+                assert.equal(pageNumber, 1);
+                done();
+            }, function(msg) {
+                assert.ok(false, msg);
+                done();
+            });
+        });
+    });
+
+    QUnit.test("getLastReviewPageNumber w/ one href (10 < reviews <= 20)", function(assert) {
+        var done = assert.async();
+        setTimeout(function() {
+            getLastReviewPageNumber(htmlHeader + spanStart + hrefPage2 + hrefNextText + spanStop + htmlFooter).then(function(pageNumber) {
                 assert.equal(pageNumber, 2);
+                done();
+            }, function(msg) {
+                assert.ok(false, msg);
+                done();
+            });
+        });
+    });
+
+    QUnit.test("getLastReviewPageNumber w/ multiple href (reviews > 20)", function(assert) {
+        var done = assert.async();
+        setTimeout(function() {
+            getLastReviewPageNumber(htmlHeader + spanStart + hrefPage2 + hrefPage3 + hrefPage4 + hrefNextText + spanStop + htmlFooter).then(function(pageNumber) {
+                assert.equal(pageNumber, 4);
                 done();
             }, function(msg) {
                 assert.ok(false, msg);
