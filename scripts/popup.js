@@ -3,14 +3,15 @@ var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
 
 function processDOM(domContent) {
-    //console.log("I received the following DOM content:\n" + domContent);
-
     /* Get the url that links to the products main review page */
     var allReviewsPageUrl = getAllReviewsPageUrl(productMainUrl);
 
-    console.log(allReviewsPageUrl);
     var allReviewsPagePromise = xhrGetPage(allReviewsPageUrl);
-    allReviewsPagePromise.then(getLastReviewPageNumber, xhrError);
+
+    var lastReviewPageNumberPromise = allReviewsPagePromise.then(getLastReviewPageNumber, xhrError);
+    lastReviewPageNumberPromise.then(function(number) {
+       console.log(number);
+    });
 }
 
 function getAllReviewsPageUrl(mainPageUrl) {
@@ -68,17 +69,33 @@ function formUrl(components) {
 }
 
 function getLastReviewPageNumber(domContent) {
-    console.log(domContent);
+    return new Promise(function(resolve, reject) {
+        /* TODO: is reject case required here? */
+        var parsedDOM = $.parseHTML(domContent);
+        console.log(domContent);
+        var pagingSpan = $(".paging", parsedDOM).first();
+        console.log(pagingSpan);
+        var hrefs = $("[href]", pagingSpan);
+        if (hrefs == null) reject(msg);
+        console.log(hrefs.length);
 
-    //var pagingSpan = domContent.getElementsByClassName("paging").item(0);
-    //
-    //if (pagingSpan == null) {
-    //    /* TODO: figure out what to do here, should be return 1 */
-    //}
-    //
-    //var largestPageNumber = 1;
+        var largestNumber = 1;
+        for (i = 0; i < hrefs.length; i++) {
+            var hrefText = hrefs[i].innerText;
+            if (isNumeric(hrefText)) {
+                number = +hrefText;
+                if (number > largestNumber) {
+                    largestNumber = number;
+                }
+            }
+        }
 
-    return 50;
+        resolve(largestNumber);
+    });
+}
+
+function isNumeric(str) {
+    return !isNaN(str);
 }
 
 function xhrError (errorMsg) { console.error(errorMsg); }
