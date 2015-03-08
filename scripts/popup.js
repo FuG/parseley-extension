@@ -2,6 +2,7 @@ var TEST_MODE = 0;
 var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
 var reviewPageUrlBase;
+var totalReviewCount;
 
 function logError (errorMsg) { console.error(errorMsg); }
 
@@ -9,7 +10,17 @@ function setStatus(status) {
     $("#status").text(status);
 }
 
+function progressDone() {
+    setStatus("Done!");
+    progressValue = 100;
+}
+
 function processDOM(domContent) {
+    totalReviewCount = getTotalReviewCountForProduct(domContent);
+    console.log("count: ", totalReviewCount);
+
+    progressInterval = 100 / (totalReviewCount * 1.1);
+
     reviewPageUrlBase = getAllReviewsPageUrl(productMainUrl);
 
     var allReviewsPagePromise = xhrGetPage(reviewPageUrlBase);
@@ -18,7 +29,24 @@ function processDOM(domContent) {
 
     var allReviewProfileLinksPromise = lastReviewPageNumberPromise.then(getAllReviewProfileLinks);
 
-    allReviewProfileLinksPromise.then(getAllProfilePages, logError);
+    var something = allReviewProfileLinksPromise.then(getAllProfilePages, logError);
+
+    something.then(function() {
+
+    }, function() {
+
+    });
+}
+
+function getTotalReviewCountForProduct(productPageDOM) {
+    var customerReviewObj = $("#acrCustomerReviewText", productPageDOM);
+    console.log(customerReviewObj);
+    var customerReviewText = customerReviewObj.text();
+    console.log(customerReviewText);
+    var split = customerReviewText.split(" ");
+    console.log(split);
+
+    return +split[0];
 }
 
 function getAllReviewsPageUrl(mainPageUrl) {
@@ -121,24 +149,21 @@ function isNumeric(str) {
 
 function getAllReviewProfileLinks(lastPageNumber) {
     /* TODO: write tests*/
+    setStatus("Fetching review pages...");
     return new Promise(function(resolve, reject) {
         if (lastPageNumber !== parseInt(lastPageNumber, 10)) {
             reject("IllegalArgument: argument is not an integer");
         }
-        setStatus("Gather profiles...");
 
-        interval = 100 / lastPageNumber;
-
-        var profileLinks = [0];
+        var profileLinks = [];
         var resolveCount = 0;
         var i;
         for (i = 1; i <= lastPageNumber; i++) {
             getAllProfileLinksForPage(i).then(function(profileLinksForPage) {
                 profileLinks = profileLinks.concat(profileLinksForPage);
-                value += interval;
+                progressValue += progressInterval;
                 if (++resolveCount == lastPageNumber) {
                     resolve(profileLinks);
-                    value = 100;
                 }
             }, function(errorMsg) {
                 reject(errorMsg);
@@ -153,7 +178,13 @@ function getAllProfileLinksForPage(pageNumber) {
         var reviewPageUrl = reviewPageUrlBase + "?pageNumber=" + pageNumber;
         xhrGetPage(reviewPageUrl).then(function(pageContent) {
             var reviewsDiv = $("#productReviews", pageContent);
-            var profileLinks = $("[href*='member-reviews']", reviewsDiv);
+            var profileLinkObjs = $("[href*='member-reviews']", reviewsDiv).toArray();
+
+            var profileLinks = [];
+            profileLinkObjs.forEach(function(entry) {
+                profileLinks.push($(entry).attr("href"));
+                console.log($(entry).attr("href"));
+            });
             resolve(profileLinks);
         }, function(errorMsg) {
             reject(errorMsg);
@@ -162,9 +193,32 @@ function getAllProfileLinksForPage(pageNumber) {
 }
 
 function getAllProfilePages(profileLinks) {
+    setStatus("Gathering profiles...");
     return new Promise(function(resolve, reject) {
         console.log(profileLinks.length);
-        resolve();
+        /* Get each profile */
+        var profiles = [];
+        var profileCount = 0;
+        var counter = 1;
+        profileLinks.forEach(function(urlSuffix) {
+            console.log("Sent: " + counter++);
+            xhrGetPage(DOMAIN + urlSuffix).then(function(profile) {
+                profiles.push(profile);
+                console.log("Profile #: ", profiles.length);
+                progressValue += progressInterval;
+                if (++profileCount >= totalReviewCount) {
+                    progressDone();
+                    resolve();
+                }
+            }, function(errorMsg) {
+                logError(errorMsg);
+                progressValue += progressInterval;
+                if (++profileCount >= totalReviewCount) {
+                    progressDone();
+                    resolve();
+                }
+            })
+        });
     });
 }
 
@@ -187,7 +241,6 @@ function getCurrentTab(callback) {
 }
 
 function sendMessage(tab) {
-    /* TODO: MAY NOT NEED THIS, SINCE WE ONLY USE URL TO BEGIN */
     chrome.tabs.sendMessage(tab.id, { text: "report_back" }, processDOM);
 }
 

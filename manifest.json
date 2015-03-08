@@ -6,7 +6,8 @@
   "version": "1.0",
 
   "browser_action": {
-    "default_icon": "images/icon.png",
+//    "default_icon": "images/icon.png",
+    "default_icon": "images/magnify-short-icon-2.png",
     "default_popup": "popup.html"
 //    "default_popup": "unit-tests.html"
   },

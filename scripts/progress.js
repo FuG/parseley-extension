@@ -1,5 +1,5 @@
-var value = 0;
-var interval = 1;
+var progressValue = 0;
+var progressInterval = 1;
 
 /*
  * Progress Value/Status:
@@ -9,18 +9,18 @@ var interval = 1;
  * 70%  / Analyzing...
  * 100% / Done!
  */
-
+var timeout = 100;
 $(document).ready(function() {
     var progressbar = $('#progressbar');
     var max = progressbar.attr('max');
     var time = (1000/max)*5;
 
     var loading = function() {
-        addValue = progressbar.val(value);
+        addValue = progressbar.val(progressValue);
 
-        $('.progress-value').html(value + '%');
+        $('.progress-value').html(Math.floor(progressValue) + '%');
 
-        if (value == max) {
+        if (progressValue >= max) {
             clearInterval(animate);
         }
     };
