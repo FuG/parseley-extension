@@ -1,4 +1,5 @@
 var TEST_MODE = 0;
+var RATE_LIMITER_MS = 15;
 var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
 var reviewPageUrlBase;
@@ -9,14 +10,10 @@ function logError (errorMsg) { console.error(errorMsg); }
 function setStatus(status) {
     var fadeTime = 200;
     var statusDiv = $("#status");
-    if (statusDiv.text() !== "") {
-        statusDiv.fadeOut(fadeTime, function () {
-            statusDiv.text(status);
-        });
-    } else {
+    statusDiv.fadeTo(fadeTime, 0, function () {
         statusDiv.text(status);
-    }
-    statusDiv.fadeIn(fadeTime);
+    });
+    statusDiv.fadeTo(fadeTime, 1);
 }
 
 function progressDone() {
@@ -28,6 +25,12 @@ function processDOM(domContent) {
     totalReviewCount = getTotalReviewCountForProduct(domContent);
     console.log("count: ", totalReviewCount);
 
+    if (totalReviewCount !== 0) {
+        gatherProfileData();
+    }
+}
+
+function gatherProfileData() {
     progressInterval = 100 / (totalReviewCount * 1.1);
 
     reviewPageUrlBase = getAllReviewsPageUrl(productMainUrl);
@@ -49,11 +52,8 @@ function processDOM(domContent) {
 
 function getTotalReviewCountForProduct(productPageDOM) {
     var customerReviewObj = $("#acrCustomerReviewText", productPageDOM);
-    console.log(customerReviewObj);
     var customerReviewText = customerReviewObj.text();
-    console.log(customerReviewText);
     var split = customerReviewText.split(" ");
-    console.log(split);
 
     return +split[0];
 }
@@ -165,57 +165,53 @@ function getAllReviewProfileLinks(lastPageNumber) {
         }
 
         var profileLinks = [];
-        var resolveCount = 0;
-        var i;
+        var reviewPageCount = 0;
+        var timeoutTime = 1;
+        var pageNumbers = [];
+
+        /* Generate page number sequence (stupid way) */
+        var i = 1;
         for (i = 1; i <= lastPageNumber; i++) {
-            getAllProfileLinksForPage(i).then(function(profileLinksForPage) {
-                profileLinks = profileLinks.concat(profileLinksForPage);
-                progressValue += progressInterval;
-                if (++resolveCount == lastPageNumber) {
-                    resolve(profileLinks);
-                }
-            }, function(errorMsg) {
-                reject(errorMsg);
-            });
+            pageNumbers.push(i);
         }
-    });
-}
 
-function getAllProfileLinksForPage(pageNumber) {
-    /* TODO: write tests*/
-    return new Promise(function(resolve, reject) {
-        var reviewPageUrl = reviewPageUrlBase + "?pageNumber=" + pageNumber;
-        xhrGetPage(reviewPageUrl).then(function(pageContent) {
-            var reviewsDiv = $("#productReviews", pageContent);
-            var profileLinkObjs = $("[href*='member-reviews']", reviewsDiv).toArray();
+        console.log(pageNumbers);
+        pageNumbers.forEach(function(pageNumber) {
+            setTimeout(function() {
+                var reviewPageUrl = reviewPageUrlBase + "?pageNumber=" + pageNumber;
+                xhrGetPage(reviewPageUrl).then(function(pageContent) {
+                    var reviewsDiv = $("#productReviews", pageContent);
+                    var profileLinkObjs = $("[href*='member-reviews']", reviewsDiv).toArray();
 
-            var profileLinks = [];
-            profileLinkObjs.forEach(function(entry) {
-                profileLinks.push($(entry).attr("href"));
-                console.log($(entry).attr("href"));
-            });
-            resolve(profileLinks);
-        }, function(errorMsg) {
-            reject(errorMsg);
-        });
+                    profileLinkObjs.forEach(function(entry) {
+                        profileLinks.push($(entry).attr("href"));
+                    });
+                    progressValue += progressInterval;
+
+                    if (++reviewPageCount >= lastPageNumber) {
+                        resolve(profileLinks);
+                    }
+                }, function(errorMsg) {
+                    reject(errorMsg);
+                });
+            }, (timeoutTime++) * RATE_LIMITER_MS);
+        })
     });
 }
 
 function getAllProfilePages(profileLinks) {
     setStatus("Gathering profiles...");
     return new Promise(function(resolve, reject) {
-        console.log(profileLinks.length);
         /* Get each profile */
         var profiles = [];
         var profileCount = 0;
         var counter = 1;
         var timeoutTime = 1;
+        console.log(profileLinks.length);
         profileLinks.forEach(function(urlSuffix) {
             setTimeout(function() {
-                console.log("Sent: " + counter++);
                 xhrGetPage(DOMAIN + urlSuffix).then(function(profile) {
                     profiles.push(profile);
-                    console.log("Profile #: ", profiles.length);
                     progressValue += progressInterval;
                     if (++profileCount >= totalReviewCount) {
                         progressDone();
@@ -229,7 +225,7 @@ function getAllProfilePages(profileLinks) {
                         resolve();
                     }
                 })
-            }, (timeoutTime++) * 10);
+            }, (timeoutTime++) * RATE_LIMITER_MS);
         });
     });
 }
@@ -237,7 +233,7 @@ function getAllProfilePages(profileLinks) {
 /* START UP METHODS */
 
 function getCurrentTab(callback) {
-    setStatus("Starting up...");
+    //setStatus("Starting up...");
     var queryInfo = {
         active: true,
         currentWindow: true
@@ -259,6 +255,10 @@ function sendMessage(tab) {
 
 if (!TEST_MODE) {
     document.addEventListener('DOMContentLoaded', function () {
-        getCurrentTab(sendMessage);
+        $("#body").fadeTo(10, 0);
+        setTimeout(function() {
+            $("#body").fadeTo(200, 1);
+            getCurrentTab(sendMessage);
+        }, 100);
     });
 }
