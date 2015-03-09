@@ -7,7 +7,16 @@ var totalReviewCount;
 function logError (errorMsg) { console.error(errorMsg); }
 
 function setStatus(status) {
-    $("#status").text(status);
+    var fadeTime = 200;
+    var statusDiv = $("#status");
+    if (statusDiv.text() !== "") {
+        statusDiv.fadeOut(fadeTime, function () {
+            statusDiv.text(status);
+        });
+    } else {
+        statusDiv.text(status);
+    }
+    statusDiv.fadeIn(fadeTime);
 }
 
 function progressDone() {
@@ -200,24 +209,27 @@ function getAllProfilePages(profileLinks) {
         var profiles = [];
         var profileCount = 0;
         var counter = 1;
+        var timeoutTime = 1;
         profileLinks.forEach(function(urlSuffix) {
-            console.log("Sent: " + counter++);
-            xhrGetPage(DOMAIN + urlSuffix).then(function(profile) {
-                profiles.push(profile);
-                console.log("Profile #: ", profiles.length);
-                progressValue += progressInterval;
-                if (++profileCount >= totalReviewCount) {
-                    progressDone();
-                    resolve();
-                }
-            }, function(errorMsg) {
-                logError(errorMsg);
-                progressValue += progressInterval;
-                if (++profileCount >= totalReviewCount) {
-                    progressDone();
-                    resolve();
-                }
-            })
+            setTimeout(function() {
+                console.log("Sent: " + counter++);
+                xhrGetPage(DOMAIN + urlSuffix).then(function(profile) {
+                    profiles.push(profile);
+                    console.log("Profile #: ", profiles.length);
+                    progressValue += progressInterval;
+                    if (++profileCount >= totalReviewCount) {
+                        progressDone();
+                        resolve();
+                    }
+                }, function(errorMsg) {
+                    logError(errorMsg);
+                    progressValue += progressInterval;
+                    if (++profileCount >= totalReviewCount) {
+                        progressDone();
+                        resolve();
+                    }
+                })
+            }, (timeoutTime++) * 10);
         });
     });
 }
@@ -225,6 +237,7 @@ function getAllProfilePages(profileLinks) {
 /* START UP METHODS */
 
 function getCurrentTab(callback) {
+    setStatus("Starting up...");
     var queryInfo = {
         active: true,
         currentWindow: true
