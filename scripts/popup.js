@@ -10,10 +10,15 @@ function logError (errorMsg) { console.error(errorMsg); }
 function setStatus(status) {
     var fadeTime = 200;
     var statusDiv = $("#status");
-    statusDiv.fadeTo(fadeTime, 0, function () {
+    //statusDiv.fadeTo(fadeTime, 0, function () {
+    //    statusDiv.text(status);
+    //});
+    //statusDiv.fadeTo(fadeTime, 1);
+
+    statusDiv.fadeOut(fadeTime, function () {
         statusDiv.text(status);
     });
-    statusDiv.fadeTo(fadeTime, 1);
+    statusDiv.fadeIn(fadeTime);
 }
 
 function progressDone() {
@@ -43,11 +48,7 @@ function gatherProfileData() {
 
     var something = allReviewProfileLinksPromise.then(getAllProfilePages, logError);
 
-    something.then(function() {
-
-    }, function() {
-
-    });
+    something.then(extractProfileData, logError);
 }
 
 function getTotalReviewCountForProduct(productPageDOM) {
@@ -175,7 +176,6 @@ function getAllReviewProfileLinks(lastPageNumber) {
             pageNumbers.push(i);
         }
 
-        console.log(pageNumbers);
         pageNumbers.forEach(function(pageNumber) {
             setTimeout(function() {
                 var reviewPageUrl = reviewPageUrlBase + "?pageNumber=" + pageNumber;
@@ -214,20 +214,51 @@ function getAllProfilePages(profileLinks) {
                     profiles.push(profile);
                     progressValue += progressInterval;
                     if (++profileCount >= totalReviewCount) {
-                        progressDone();
-                        resolve();
+                        resolve(profiles);
                     }
                 }, function(errorMsg) {
                     logError(errorMsg);
                     progressValue += progressInterval;
                     if (++profileCount >= totalReviewCount) {
-                        progressDone();
-                        resolve();
+                        resolve(profiles);
                     }
                 })
             }, (timeoutTime++) * RATE_LIMITER_MS);
         });
     });
+}
+
+function extractProfileData(profileDOMs) {
+    setStatus("Extracting profile data...");
+    return new Promise(function(resolve, reject) {
+        var profileCount = profileDOMs.length;
+        var counter = 0;
+        var customerReviewCountTotal = 0;
+        profileDOMs.forEach(function(pDOM) {
+            var customerReviewCount = extractCustomerReviewCount(pDOM);
+            customerReviewCountTotal += customerReviewCount;
+            if (++counter >= profileCount) {
+                progressDone();
+                $("#totalCR").text(customerReviewCountTotal);
+                resolve();
+            }
+        });
+    });
+}
+
+function extractCustomerReviewCount(pDOM) {
+    var divSmallArray = $("div.small", pDOM).toArray();
+    var i;
+    for (i = 0; i < divSmallArray.length; i++) {
+        divSmallText = divSmallArray[i].innerText;
+        if (divSmallText.indexOf("Customer Reviews:") > -1) {
+            var split = divSmallText.split("Customer Reviews: ");
+            if (isNumeric(split[1])) {
+                return +split[1];
+            }
+        };
+    }
+    return 0;
 }
 
 /* START UP METHODS */

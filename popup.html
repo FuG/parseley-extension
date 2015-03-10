@@ -24,6 +24,17 @@
             max-width: 300px;
             height: 26px;
         }
+
+        #totalCR {
+            /* avoid an excessively wide status text */
+            /*visibility: hidden;*/
+            white-space: pre;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            min-width: 100px;
+            max-width: 300px;
+            height: 26px;
+        }
     </style>
     <link rel="stylesheet" href="styles/progress.css">
 
@@ -42,6 +53,8 @@
         <span class="progress-value">0%</span>
     </div>
 </div>
+
+<div id="totalCR"></div>
 
 </body>
 </html>
