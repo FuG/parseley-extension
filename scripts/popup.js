@@ -56,7 +56,9 @@ function getTotalReviewCountForProduct(productPageDOM) {
     var customerReviewText = customerReviewObj.text();
     var split = customerReviewText.split(" ");
 
-    return +split[0];
+    var number = split[0].replace(/,/g, '');
+
+    return +number;
 }
 
 function getAllReviewsPageUrl(mainPageUrl) {
@@ -205,7 +207,7 @@ function getAllProfilePages(profileLinks) {
         /* Get each profile */
         var profiles = [];
         var profileCount = 0;
-        var counter = 1;
+        var profileLinksCount = profileLinks.length;
         var timeoutTime = 1;
         console.log(profileLinks.length);
         profileLinks.forEach(function(urlSuffix) {
@@ -213,13 +215,13 @@ function getAllProfilePages(profileLinks) {
                 xhrGetPage(DOMAIN + urlSuffix).then(function(profile) {
                     profiles.push(profile);
                     progressValue += progressInterval;
-                    if (++profileCount >= totalReviewCount) {
+                    if (++profileCount >= profileLinksCount) {
                         resolve(profiles);
                     }
                 }, function(errorMsg) {
                     logError(errorMsg);
                     progressValue += progressInterval;
-                    if (++profileCount >= totalReviewCount) {
+                    if (++profileCount >= profileLinksCount) {
                         resolve(profiles);
                     }
                 })
@@ -235,11 +237,13 @@ function extractProfileData(profileDOMs) {
         var counter = 0;
         var customerReviewCountTotal = 0;
         profileDOMs.forEach(function(pDOM) {
+            console.log(counter);
             var customerReviewCount = extractCustomerReviewCount(pDOM);
             customerReviewCountTotal += customerReviewCount;
             if (++counter >= profileCount) {
                 progressDone();
-                $("#totalCR").text(customerReviewCountTotal);
+                var avgReviews = Math.round(customerReviewCountTotal / profileCount * 10) / 10;
+                $("#totalCR").text("Avg. Reviews / Profile = " + avgReviews);
                 resolve();
             }
         });
