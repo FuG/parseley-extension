@@ -1,5 +1,5 @@
 var TEST_MODE = 0;
-var RATE_LIMITER_MS = 15;
+var RATE_LIMITER_MS = 10;
 var DOMAIN = "http://www.amazon.com";
 var productMainUrl;
 var reviewPageUrlBase;
@@ -17,13 +17,14 @@ function setStatus(status) {
 
     statusDiv.fadeOut(fadeTime, function () {
         statusDiv.text(status);
+        statusDiv.fadeIn(fadeTime);
     });
-    statusDiv.fadeIn(fadeTime);
 }
 
 function progressDone() {
     setStatus("Done!");
     progressValue = 100;
+    $("div.html5-progress-bar").fadeOut(400);
 }
 
 function processDOM(domContent) {
@@ -36,7 +37,7 @@ function processDOM(domContent) {
 }
 
 function gatherProfileData() {
-    progressInterval = 100 / (totalReviewCount * 1.1);
+    progressInterval = 100 / (totalReviewCount * 1.1) * .90;
 
     reviewPageUrlBase = getAllReviewsPageUrl(productMainUrl);
 
@@ -169,7 +170,7 @@ function getAllReviewProfileLinks(lastPageNumber) {
 
         var profileLinks = [];
         var reviewPageCount = 0;
-        var timeoutTime = 1;
+        var timeoutTimer = 1;
         var pageNumbers = [];
 
         /* Generate page number sequence (stupid way) */
@@ -196,7 +197,7 @@ function getAllReviewProfileLinks(lastPageNumber) {
                 }, function(errorMsg) {
                     reject(errorMsg);
                 });
-            }, (timeoutTime++) * RATE_LIMITER_MS);
+            }, (timeoutTimer++) * RATE_LIMITER_MS);
         })
     });
 }
@@ -208,7 +209,7 @@ function getAllProfilePages(profileLinks) {
         var profiles = [];
         var profileCount = 0;
         var profileLinksCount = profileLinks.length;
-        var timeoutTime = 1;
+        var timeoutTimer = 1;
         console.log(profileLinks.length);
         profileLinks.forEach(function(urlSuffix) {
             setTimeout(function() {
@@ -225,27 +226,32 @@ function getAllProfilePages(profileLinks) {
                         resolve(profiles);
                     }
                 })
-            }, (timeoutTime++) * RATE_LIMITER_MS);
+            }, (timeoutTimer++) * RATE_LIMITER_MS);
         });
     });
 }
 
 function extractProfileData(profileDOMs) {
     setStatus("Extracting profile data...");
+    progressInterval = (100 / totalReviewCount) / 10;
     return new Promise(function(resolve, reject) {
         var profileCount = profileDOMs.length;
         var counter = 0;
+        var timeoutTimer = 1;
         var customerReviewCountTotal = 0;
         profileDOMs.forEach(function(pDOM) {
-            console.log(counter);
-            var customerReviewCount = extractCustomerReviewCount(pDOM);
-            customerReviewCountTotal += customerReviewCount;
-            if (++counter >= profileCount) {
-                progressDone();
-                var avgReviews = Math.round(customerReviewCountTotal / profileCount * 10) / 10;
-                $("#totalCR").text("Avg. Reviews / Profile = " + avgReviews);
-                resolve();
-            }
+            setTimeout(function() {
+                console.log(counter);
+                var customerReviewCount = extractCustomerReviewCount(pDOM);
+                customerReviewCountTotal += customerReviewCount;
+                progressValue += progressInterval;
+                if (++counter >= profileCount) {
+                    progressDone();
+                    var avgReviews = Math.round(customerReviewCountTotal / profileCount * 10) / 10;
+                    $("#totalCR").text("Avg. Reviews / Profile = " + avgReviews);
+                    resolve();
+                }
+            }, (timeoutTimer++) * RATE_LIMITER_MS);
         });
     });
 }
