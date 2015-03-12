@@ -10,10 +10,6 @@ function logError (errorMsg) { console.error(errorMsg); }
 function setStatus(status) {
     var fadeTime = 200;
     var statusDiv = $("#status");
-    //statusDiv.fadeTo(fadeTime, 0, function () {
-    //    statusDiv.text(status);
-    //});
-    //statusDiv.fadeTo(fadeTime, 1);
 
     statusDiv.fadeOut(fadeTime, function () {
         statusDiv.text(status);
@@ -24,7 +20,7 @@ function setStatus(status) {
 function progressDone() {
     setStatus("Done!");
     progressValue = 100;
-    $("div.html5-progress-bar").fadeOut(400);
+    //$("div.html5-progress-bar").fadeOut(400);
 }
 
 function processDOM(domContent) {
