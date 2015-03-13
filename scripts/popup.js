@@ -27,9 +27,9 @@ function processDOM(domContent) {
     totalReviewCount = getTotalReviewCountForProduct(domContent);
     console.log("count: ", totalReviewCount);
 
-    if (totalReviewCount !== 0) {
-        gatherProfileData();
-    }
+    //if (totalReviewCount !== 0) {
+    //    gatherProfileData();
+    //}
 }
 
 function gatherProfileData() {
@@ -49,13 +49,39 @@ function gatherProfileData() {
 }
 
 function getTotalReviewCountForProduct(productPageDOM) {
-    var customerReviewObj = $("#acrCustomerReviewText", productPageDOM);
-    var customerReviewText = customerReviewObj.text();
-    var split = customerReviewText.split(" ");
+    var customerReviewObj;
+    var customerReviewText;
+    var split;
+    var number;
 
-    var number = split[0].replace(/,/g, '');
+    // Method #1 (regular products?)
+    customerReviewObj = $("#acrCustomerReviewText", productPageDOM);
+    console.log(customerReviewObj.text());
+    if (customerReviewObj.context !== undefined) {
+        customerReviewText = customerReviewObj.text();
+        split = customerReviewText.split(" ");
 
-    return +number;
+        number = split[0].replace(/,/g, '');
+
+        return +number;
+    }
+
+    // Method #2 (video games?)
+    //http://www.amazon.com/gp/product/B00KWFCUNS/
+    customerReviewObj = $("#revSAR", productPageDOM);
+    console.log();
+    if (customerReviewObj.context !== undefined) {
+        customerReviewText = customerReviewObj.text();
+        split = customerReviewText.split("See all ");
+        console.log(split);
+        customerReviewText = split[1];
+        console.log(customerReviewText);
+        split = customerReviewText.split(" customer reviews");
+
+        number = split[0].replace(/,/g, '');
+
+        return +number;
+    }
 }
 
 function getAllReviewsPageUrl(mainPageUrl) {
